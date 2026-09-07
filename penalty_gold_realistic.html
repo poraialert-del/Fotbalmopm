@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Penalty Gold — Shootout</title>
+<style>
+:root{--bg:#07101d;--panel:#0d1828;--line:#24344b;--gold:#f7c948;--text:#eef4ff;--muted:#9eb0c8;--green:#39d98a;--red:#ff5d6c}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -20%,#183557,#050b14 60%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Tahoma,sans-serif;min-height:100vh}.wrap{width:min(1120px,96vw);margin:auto;padding:18px 0 28px}.top{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap}.brand{font-size:22px;font-weight:900;letter-spacing:.4px}.brand b{color:var(--gold)}.hud{display:flex;gap:8px;flex-wrap:wrap}.card{background:linear-gradient(180deg,#101d30,#0a1422);border:1px solid var(--line);border-radius:14px;padding:10px 14px;min-width:120px}.label{font-size:11px;color:var(--muted)}.value{font-weight:900;font-size:18px;margin-top:2px}.shots{border-color:#806b2a}.shots .value{color:var(--gold)}.timer{color:#ffcb5a}.stage{position:relative;border:1px solid #31455d;border-radius:18px;overflow:hidden;background:#02070c;box-shadow:0 22px 60px #0009}.stage canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}.message{opacity:0;transform:translateY(12px) scale(.95);transition:.25s;background:#07111ed9;border:1px solid #52657d;border-radius:18px;padding:18px 26px;text-align:center;backdrop-filter:blur(8px);font-weight:900;font-size:26px;box-shadow:0 12px 35px #0008}.message.show{opacity:1;transform:none}.message small{display:block;color:var(--muted);font-size:13px;margin-top:7px}.controls{display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:12px}.panel{background:linear-gradient(180deg,#0f1b2c,#091320);border:1px solid var(--line);border-radius:15px;padding:14px}.aim{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.aim button{border:1px solid #31455d;background:#142237;color:#eaf2ff;border-radius:11px;padding:13px 6px;font-weight:800;cursor:pointer;transition:.16s}.aim button:hover:not(:disabled){transform:translateY(-2px);border-color:#d7b443;background:#1b2c45}.aim button:disabled{opacity:.35;cursor:not-allowed}.side{min-width:220px}.row{display:flex;gap:8px}.btn{border:1px solid #40556f;background:#15253a;color:white;border-radius:10px;padding:10px 13px;cursor:pointer;font-weight:800}.btn:hover{background:#1d3049}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.stat{padding:10px;border:1px solid #24354b;border-radius:10px}.stat b{display:block;font-size:17px}.stat span{color:var(--muted);font-size:11px}.note{margin-top:10px;color:#8ea2bb;font-size:11px;line-height:1.7}.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;background:#0b1726;border:1px solid #3b4e68;padding:10px 15px;border-radius:11px;transition:.25s;z-index:20}.toast.show{opacity:1;transform:translate(-50%,0)}@media(max-width:760px){.controls{grid-template-columns:1fr}.side{min-width:0}.card{min-width:100px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Penalty <b>Gold</b> · Shootout</div>
+    <div class="hud">
+      <div class="card"><div class="label">GOALS</div><div class="value" id="goals">0</div></div>
+      <div class="card"><div class="label">STREAK</div><div class="value" id="streak">0</div></div>
+      <div class="card shots"><div class="label">SHOTS LEFT</div><div class="value" id="shots">10 / 10</div></div>
+      <div class="card"><div class="label">STATUS</div><div class="value timer" id="status">READY</div></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="field" width="1280" height="720"></canvas>
+    <div class="overlay"><div class="message" id="message"></div></div>
+  </div>
+
+  <div class="controls">
+    <div class="panel">
+      <div style="font-weight:900;margin-bottom:10px">انتخاب محل ضربه</div>
+      <div class="aim">
+        <button data-zone="0">↖ بالا چپ</button><button data-zone="1">↑ بالا</button><button data-zone="2">↗ بالا راست</button>
+        <button data-zone="3">← چپ</button><button data-zone="4">● مرکز</button><button data-zone="5">راست →</button>
+        <button data-zone="6">↙ پایین چپ</button><button data-zone="7">↓ پایین</button><button data-zone="8">↘ پایین راست</button>
+      </div>
+    </div>
+    <div class="panel side">
+      <div class="row"><button class="btn" id="sound">🔊 صدا</button><button class="btn" id="reset">↻ ریست</button></div>
+      <div class="stats"><div class="stat"><b id="saved">0</b><span>سیو دروازه‌بان</span></div><div class="stat"><b id="miss">0</b><span>خطا</span></div></div>
+      <div class="note">قانون: گل هیچ شوتی مصرف نمی‌کند. فقط خطا/سیو یک شوت از موجودی کم می‌کند. با صفر شدن موجودی، ۱۰ دقیقه شارژ مجدد شروع می‌شود.</div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+'use strict';
+const MAX_SHOTS=10, COOLDOWN=10*60*1000, KEY='penalty_gold_realistic_v3';
+const c=document.getElementById('field'),ctx=c.getContext('2d');
+const $=id=>document.getElementById(id);
+let audioOn=true,audioCtx=null,busy=false,anim=null,last=performance.now();
+let s=load()||{shots:10,goals:0,streak:0,saved:0,miss:0,cooldownUntil:0};
+function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch{return null}}
+function save(){localStorage.setItem(KEY,JSON.stringify(s))}
+function audio(){if(!audioOn)return;if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume()}
+function tone(freq,dur,type='sine',gain=.035,slide=0){if(!audioOn)return;audio();let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;o.frequency.linearRampToValueAtTime(Math.max(30,freq+slide),audioCtx.currentTime+dur);g.gain.setValueAtTime(gain,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}
+function kickSound(){tone(85,.07,'square',.055,180);setTimeout(()=>tone(170,.09,'sine',.035,-60),35)}
+function goalSound(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.16,'triangle',.04),i*90))}
+function saveSound(){tone(100,.18,'sawtooth',.045,-65);setTimeout(()=>tone(55,.22,'square',.03),80)}
+function toast(t){const x=$('toast');x.textContent=t;x.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>x.classList.remove('show'),2200)}
+function hud(){
+  if(s.cooldownUntil&&Date.now()>=s.cooldownUntil){s.shots=MAX_SHOTS;s.cooldownUntil=0;s.streak=0;save();toast('۱۰ شوت دوباره شارژ شد');}
+  $('goals').textContent=s.goals;$('streak').textContent=s.streak;$('saved').textContent=s.saved;$('miss').textContent=s.miss;
+  if(s.cooldownUntil){let sec=Math.max(0,Math.ceil((s.cooldownUntil-Date.now())/1000));$('shots').textContent='0 / 10';$('status').textContent=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
+  else{$('shots').textContent=`${s.shots} / 10`;$('status').textContent=busy?'SHOOTING':'READY'}
+  document.querySelectorAll('.aim button').forEach(b=>b.disabled=busy||!!s.cooldownUntil||s.shots<=0);
+}
+setInterval(hud,250);hud();
+
+const crowd=[];for(let i=0;i<900;i++)crowd.push({x:Math.random(),y:Math.random()*.34,r:Math.random()*1.9+.5,a:Math.random()*.65+.25});
+function grad(x0,y0,x1,y1,stops){let g=ctx.createLinearGradient(x0,y0,x1,y1);stops.forEach(q=>g.addColorStop(q[0],q[1]));return g}
+function bg(){
+ ctx.clearRect(0,0,c.width,c.height);
+ let sky=grad(0,0,0,c.height,[[0,'#07111f'],[.42,'#12263b'],[.64,'#0a1827'],[1,'#06100d']]);ctx.fillStyle=sky;ctx.fillRect(0,0,c.width,c.height);
+ // roof
+ ctx.fillStyle='#02060b';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(c.width,0);ctx.lineTo(c.width,125);ctx.quadraticCurveTo(c.width*.5,65,0,125);ctx.closePath();ctx.fill();
+ // stands
+ ctx.fillStyle='#17283a';ctx.fillRect(0,105,c.width,185);ctx.fillStyle='#22384d';ctx.fillRect(0,126,c.width,15);ctx.fillStyle='#0e1b2b';ctx.fillRect(0,155,c.width,8);ctx.fillStyle='#2a4156';ctx.fillRect(0,185,c.width,7);ctx.fillStyle='#0b1623';ctx.fillRect(0,218,c.width,12);
+ crowd.forEach(p=>{let x=p.x*c.width,y=112+p.y*250;ctx.globalAlpha=p.a;ctx.fillStyle=p.y<.5?'#d7e0e9':'#71849b';ctx.beginPath();ctx.arc(x,y,p.r,0,Math.PI*2);ctx.fill()});ctx.globalAlpha=1;
+ // LED boards
+ ctx.fillStyle='#061019';ctx.fillRect(0,247,c.width,35);ctx.strokeStyle='#38546b';ctx.strokeRect(0,247,c.width,35);for(let x=0;x<c.width;x+=64){ctx.fillStyle=(x/64|0)%3===0?'#d8b646':'#173e4d';ctx.fillRect(x+6,258,42,4)}
+ // floodlights
+ [[95,75],[1185,75]].forEach(([x,y])=>{ctx.save();ctx.globalAlpha=.1;ctx.fillStyle='#eaf5ff';ctx.beginPath();ctx.moveTo(x-22,y+10);ctx.lineTo(x+22,y+10);ctx.lineTo(x+185,y+320);ctx.lineTo(x-185,y+320);ctx.closePath();ctx.fill();ctx.restore();ctx.fillStyle='#dbe8f3';ctx.fillRect(x-20,y-5,40,12);for(let i=0;i<7;i++){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-15+i*5,y+1,2.5,0,Math.PI*2);ctx.fill()}});
+ // grass perspective
+ ctx.fillStyle=grad(0,285,0,720,[[0,'#1e6c42'],[.35,'#125b36'],[1,'#06351f']]);ctx.fillRect(0,282,c.width,c.height-282);
+ // stripes
+ for(let i=0;i<12;i++){ctx.fillStyle=i%2?'#0b4a2b':'#0f5832';let y=282+i*36;ctx.fillRect(0,y,c.width,36)}
+ // field lines
+ ctx.strokeStyle='#d8f2dfaa';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(105,720);ctx.lineTo(315,282);ctx.lineTo(965,282);ctx.lineTo(1175,720);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(205,720);ctx.lineTo(390,282);ctx.moveTo(1075,720);ctx.lineTo(890,282);ctx.stroke();
+ ctx.beginPath();ctx.arc(c.width/2,575,92,Math.PI,0);ctx.stroke();ctx.beginPath();ctx.arc(c.width/2,575,4,0,Math.PI*2);ctx.fillStyle='#e8f6eb';ctx.fill();
+ // goal
+ drawGoal();
+}
+function drawGoal(){let x=430,y=175,w=420,h=245;ctx.save();
+ ctx.fillStyle='#ffffff';ctx.fillRect(x-9,y,9,h);ctx.fillRect(x+w,y,9,h);ctx.fillRect(x-9,y,w+18,9);
+ ctx.strokeStyle='#d9e5eb55';ctx.lineWidth=2;for(let i=0;i<=14;i++){let xx=x+i*w/14;ctx.beginPath();ctx.moveTo(xx,y+9);ctx.lineTo(x+w/2+(xx-x-w/2)*1.15,y+h);ctx.stroke()}for(let j=0;j<=10;j++){let yy=y+j*h/10;ctx.beginPath();ctx.moveTo(x,yy);ctx.lineTo(x+w,yy);ctx.stroke()}
+ ctx.restore();}
+function shadow(x,y,rx,ry,a=.28){ctx.save();ctx.globalAlpha=a;ctx.fillStyle='#000';ctx.filter='blur(8px)';ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.restore()}
+function keeper(kx,ky,pose=0,scale=1){ctx.save();ctx.translate(kx,ky);ctx.scale(scale,scale);let dive=pose;
+ shadow(0,70,58,10,.35);
+ // legs
+ ctx.fillStyle=grad(-20,35,20,100,[[0,'#1b2635'],[1,'#080e17']]);ctx.beginPath();ctx.roundRect(-25,34,20,63,7);ctx.roundRect(5,34,20,63,7);ctx.fill();
+ ctx.fillStyle='#eef3f4';ctx.fillRect(-25,84,20,18);ctx.fillRect(5,84,20,18);
+ // shoes
+ ctx.fillStyle='#111923';ctx.beginPath();ctx.ellipse(-18,102,22,8,0,0,Math.PI*2);ctx.ellipse(18,102,22,8,0,0,Math.PI*2);ctx.fill();
+ // torso
+ ctx.fillStyle=grad(-42,-5,42,55,[[0,'#1a8d68'],[.55,'#0e624c'],[1,'#073d32']]);ctx.beginPath();ctx.roundRect(-43,-25,86,72,18);ctx.fill();
+ ctx.strokeStyle='#4cc99c55';ctx.lineWidth=2;ctx.stroke();
+ // arms, diving based on target
+ let arm=pose===-1?-48:pose===1?48:0;ctx.strokeStyle='#0c5946';ctx.lineWidth=18;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-36,-10);ctx.lineTo(-62-arm,-28+Math.abs(arm)*.25);ctx.moveTo(36,-10);ctx.lineTo(62+arm,-28+Math.abs(arm)*.25);ctx.stroke();
+ // gloves
+ ctx.fillStyle='#f3f6e9';ctx.beginPath();ctx.arc(-62-arm,-29+Math.abs(arm)*.25,11,0,Math.PI*2);ctx.arc(62+arm,-29+Math.abs(arm)*.25,11,0,Math.PI*2);ctx.fill();
+ // neck/head
+ ctx.fillStyle='#c98d68';ctx.fillRect(-8,-42,16,18);ctx.fillStyle='#d8a078';ctx.beginPath();ctx.arc(0,-58,27,0,Math.PI*2);ctx.fill();
+ // hair
+ ctx.fillStyle='#2a211e';ctx.beginPath();ctx.arc(0,-66,27,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(-25,-66,50,9);
+ // face
+ ctx.fillStyle='#1b1b1b';ctx.beginPath();ctx.arc(-9,-57,2.2,0,Math.PI*2);ctx.arc(9,-57,2.2,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#633c32';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-50,8,0,Math.PI);ctx.stroke();
+ // shirt badge
+ ctx.fillStyle='#f7c948';ctx.beginPath();ctx.arc(0,-4,7,0,Math.PI*2);ctx.fill();ctx.restore();}
+function ball(x,y,r=13,rot=0){ctx.save();ctx.translate(x,y);ctx.rotate(rot);let g=ctx.createRadialGradient(-4,-5,2,0,0,r);g.addColorStop(0,'#fff');g.addColorStop(.7,'#dfe6e9');g.addColorStop(1,'#8e9aa2');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#202a31';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#222';for(let i=0;i<5;i++){let a=i*Math.PI*2/5+.3;ctx.beginPath();ctx.arc(Math.cos(a)*r*.45,Math.sin(a)*r*.45,r*.13,0,Math.PI*2);ctx.fill()}ctx.restore()}
+
+let world={bx:640,by:620,kx:640,ky:360,ballR:13,keeperPose:0,phase:'idle',t:0,target:4};
+function draw(){bg();
+ let kx=world.kx,ky=world.ky; if(world.phase==='dive'){let p=Math.min(1,world.t);kx=640+(world.target%3-1)*170*p;ky=360+(Math.floor(world.target/3)-1)*70*p;}
+ keeper(kx,ky,world.keeperPose,1.05);
+ shadow(world.bx,world.by+world.ballR,world.ballR*1.3,world.ballR*.38,.25);ball(world.bx,world.by,world.ballR,world.t*5);
+ if(world.phase==='idle'){ctx.fillStyle='#ffffffaa';ctx.font='700 15px system-ui';ctx.textAlign='center';ctx.fillText('CHOOSE YOUR CORNER',640,690)}
+ requestAnimationFrame(draw);
+}draw();
+function zoneXY(z){const xs=[500,640,780],ys=[245,330,415];return {x:xs[z%3],y:ys[Math.floor(z/3)]}}
+function show(msg,small=''){const m=$('message');m.innerHTML=msg+(small?`<small>${small}</small>`:'');m.classList.add('show');clearTimeout(show.t);show.t=setTimeout(()=>m.classList.remove('show'),1500)}
+function endLoss(){s.cooldownUntil=Date.now()+COOLDOWN;save();show('GAME OVER','۱۰ دقیقه دیگر ۱۰ شوت جدید شارژ می‌شود');hud()}
+function shoot(z){
+ if(busy||s.cooldownUntil||s.shots<=0)return;
+ busy=true;hud();audio();kickSound();
+ const target=zoneXY(z), keeperZone=Math.floor(Math.random()*9); world.target=z;world.phase='dive';world.t=0;world.bx=640;world.by=620;world.keeperPose=(keeperZone%3)-1;
+ const start=performance.now(),duration=850;
+ function frame(now){world.t=Math.min(1,(now-start)/duration);let p=world.t;let ease=1-Math.pow(1-p,3);world.bx=640+(target.x-640)*ease;world.by=620+(target.y-620)*ease;world.ballR=13-4*ease;if(world.t<1){requestAnimationFrame(frame)}else resolve(z,keeperZone)}requestAnimationFrame(frame);
+}
+function resolve(z,kz){world.phase='idle';world.bx=640;world.by=620;world.ballR=13;
+ const saveHit=(z===kz)||(z===4&&Math.random()<.18)||(z!==4&&Math.random()<.06);
+ if(saveHit){s.shots=Math.max(0,s.shots-1);s.saved++;s.miss++;s.streak=0;save();saveSound();show('🧤 SAVE!','یک شوت مصرف شد');if(s.shots===0)setTimeout(endLoss,700)}
+ else{s.goals++;s.streak++;save();goalSound();show('⚽ GOAL!','این گل شوت مصرف نمی‌کند')}
+ setTimeout(()=>{busy=false;hud()},500);
+}
+document.querySelectorAll('.aim button').forEach(b=>b.addEventListener('click',()=>shoot(+b.dataset.zone)));
+$('sound').onclick=()=>{audioOn=!audioOn;$('sound').textContent=audioOn?'🔊 صدا':'🔇 صدا';if(audioOn)tone(520,.08)};
+$('reset').onclick=()=>{if(!confirm('آمار و شوت‌ها از اول شوند؟'))return;s={shots:10,goals:0,streak:0,saved:0,miss:0,cooldownUntil:0};save();hud();toast('بازی ریست شد')};
+window.addEventListener('pointerdown',audio,{once:true});
+</script>
+</body>
+</html>
